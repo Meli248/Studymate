@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "674625281272",
+    "firebase_url": "https://study-53219-default-rtdb.firebaseio.com",
+    "project_id": "study-53219",
+    "storage_bucket": "study-53219.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:674625281272:android:73a2bb43e7a8478f046f0d",
+        "android_client_info": {
+          "package_name": "com.example.study"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJZ6v2zvEPGAf_35HSw6XCwdVUgqKym3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

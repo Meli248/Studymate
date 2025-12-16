@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">study</string>
+    <string name="title_activity_login">login</string>
+    <string name="title_activity_registration">RegistrationActivity</string>
+    <string name="title_activity_login.kt">Login.kt</string>
+    <string name="title_activity_dashboard">DashboardActivity</string>
+    <string name="title_activity_home_screen">HomeScreen</string>
+    <string name="title_activity_profile">Profile</string>
+    <string name="title_activity_subject">Subject</string>
+    <string name="title_activity_task">Task</string>
+</resources>

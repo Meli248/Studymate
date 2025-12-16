@@ -1,0 +1,414 @@
+package com.example.study
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable // CHANGED: added for clickable text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.study.model.User
+import com.example.study.repository.userRepoImpl
+import com.example.study.viewmodel.UserViewModel
+import kotlin.jvm.java
+
+val FieldGray = Color(0xFFF2F5F4)
+val PrimaryGreen = Color(0xFF5E8B7E)
+val Black = Color(0xFF000000)
+val White = Color(0xFFFFFFFF)
+
+val LightGreen = Color(0xFFE7F2EE)
+val DarkText = Color(0xFF2E3A3A)
+val GrayText = Color(0xFF8A9A9A)
+val PendingRed = Color(0xFF9F3A3A)
+val Background = Color(0xFFF9FBFA)
+
+class RegistrationActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            RegistrationBody()
+        }
+    }
+}
+
+@Composable
+fun RegistrationBody() {
+
+    val UserViewModel= remember { UserViewModel(userRepoImpl()) }
+
+    var fullName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var termsAccepted by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val activity = context as Activity
+    val sharedPreference = context.getSharedPreferences("User", Context.MODE_PRIVATE)
+
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White)
+    ) {
+
+        Image(
+            painter = painterResource(id = R.drawable.f),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(
+                    RoundedCornerShape(
+                        bottomStart = 24.dp,
+                        bottomEnd = 24.dp
+                    )
+                )
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.White)
+                .padding(horizontal = 20.dp, vertical = 5.dp)
+        ) {
+
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = "Create Your Account",
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryGreen,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Create your account to start your journey",
+                    fontSize = 15.sp,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+            ){
+                Text("Name",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(5.dp))
+                OutlinedTextField(
+                    value = fullName,
+                    onValueChange = { fullName = it },
+                    placeholder = { Text("Enter your full name") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = FieldGray,
+                        unfocusedContainerColor = FieldGray,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+            ){
+                Text("Email",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(5.dp))
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = { Text("Enter your email address") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = FieldGray,
+                        unfocusedContainerColor = FieldGray,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+            ){
+                Text("Password",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(5.dp))
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    placeholder = { Text("Enter your password") },
+                    visualTransformation = if (passwordVisible)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                painter = painterResource(
+                                    id = if (passwordVisible)
+                                        R.drawable.baseline_visibility_24
+                                    else
+                                        R.drawable.baseline_visibility_off_24
+                                ),
+                                contentDescription = null,
+                                tint = Color.Gray
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = FieldGray,
+                        unfocusedContainerColor = FieldGray,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Terms
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = termsAccepted,
+                    onCheckedChange = { termsAccepted = it },
+                    colors = CheckboxDefaults.colors(checkedColor = PrimaryGreen)
+                )
+                Text(
+                    text = "I agree to the Terms & Conditions ",
+                    fontSize = 14.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Button(
+                onClick = {
+                    if (!termsAccepted) {
+                        Toast.makeText(
+                            context,
+                            "Please agree to Terms & Conditions",
+                            Toast.LENGTH_SHORT).show()
+                    } else {
+
+
+                        val LocalEmail :String?= sharedPreference.getString("email","")
+                        val LocalPassword :String?= sharedPreference.getString("password","")
+                        if (LocalEmail == email){
+                            Toast.makeText(context,
+                                "email already exists",
+                                Toast.LENGTH_SHORT).show()
+
+                        }else {
+
+                            UserViewModel.register(fullName,email,password){
+                                    success,msg,userId->
+                                if(success){
+                                    val model = User(
+                                        userId = userId,
+                                        email = email,
+                                        fullName = fullName
+
+
+                                        )
+                                    UserViewModel.addUserToDatabase(userId,model){
+                                            success,msg->
+                                        if(success){
+                                            Toast.makeText(context,
+                                                msg,
+                                                Toast.LENGTH_SHORT).show()
+                                            //activity.finish()
+                                        }else{
+                                            Toast.makeText(context,
+                                                msg,
+                                                Toast.LENGTH_SHORT).show()
+
+                                        }
+                                    }
+                                }else{
+                                    Toast.makeText(context,
+                                        msg,
+                                        Toast.LENGTH_SHORT).show()
+
+                                }
+                            }
+
+
+                        }
+
+                    }
+                },
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+            ) {
+                Text(
+                    text = "Register",
+                    color = Color.White,
+                    fontSize = 17.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f)
+                )
+                Text("OR",
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+                HorizontalDivider(
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Button(
+                onClick = {
+                    if (!termsAccepted) {
+                        Toast.makeText(
+                            context,
+                            "Please agree to Terms & Conditions",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Google Sign-in successfully",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.google),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Sign in with Google",
+                        color = Color.Black,
+                        fontSize = 17.sp
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // CHANGED: Made this clickable to redirect to LoginActivity
+            Text(
+                buildAnnotatedString {
+                    append("Already have an account? ")
+                    withStyle(
+                        SpanStyle(
+                            color = PrimaryGreen,
+                            fontWeight = FontWeight.Medium
+                        )
+                    ) {
+                        append("Login")
+                    }
+                },
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .clickable {
+                        val intent = Intent(context, Login::class.java)
+                        context.startActivity(intent)
+                        context.finish()
+
+                    }
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun PreviewRegistration() {
+    RegistrationBody()
+}
