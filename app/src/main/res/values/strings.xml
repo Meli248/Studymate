@@ -8,4 +8,5 @@
     <string name="title_activity_profile">Profile</string>
     <string name="title_activity_subject">Subject</string>
     <string name="title_activity_task">Task</string>
+    <string name="title_activity_forget_password">ForgetPassword</string>
 </resources>

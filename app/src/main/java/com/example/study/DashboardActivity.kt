@@ -48,8 +48,9 @@ fun DashboardBody() {
     val password = activity.intent.getStringExtra("password")
 
     data class NavItem(val label: String, val icon: Int)
+    var selectedIndex by remember { mutableStateOf(0) }
 
-    var selectedIndex by remember() { mutableStateOf(0) }
+
     val navList = listOf(
         NavItem("Home", R.drawable.baseline_home_24),
         NavItem("Subject", R.drawable.baseline_subject_24),

@@ -79,23 +79,11 @@ fun LoginBody() {
 
     val UserViewModel = remember { UserViewModel(userRepoImpl()) }
 
-
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val activity = context as Activity
-    val sharedPreferences = context.getSharedPreferences(
-        "User",
-        Context.MODE_PRIVATE
-    ) // stores saved user  email/password
-
-// get stored email and password
-    val localEmail: String? = sharedPreferences.getString("email", "")
-    val localPassword: String? = sharedPreferences.getString("password", "")
-
-
-
 
     Scaffold { padding ->
         Column(
@@ -111,12 +99,7 @@ fun LoginBody() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(300.dp)
-                    .clip(
-                        RoundedCornerShape(
-                            bottomStart = 24.dp,
-                            bottomEnd = 24.dp
-                        )
-                    )
+                    .clip(RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp))
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -153,15 +136,9 @@ fun LoginBody() {
 
                 Spacer(modifier = Modifier.height(18.dp))
 
-                // Email Field
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Email",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("Email", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(5.dp))
                     OutlinedTextField(
                         value = email,
@@ -181,24 +158,15 @@ fun LoginBody() {
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Password Field
-                Column(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "Password",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text("Password", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(5.dp))
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
                         placeholder = { Text("Enter your password") },
-                        visualTransformation = if (passwordVisible)
-                            VisualTransformation.None
-                        else
-                            PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                 Icon(
@@ -224,8 +192,22 @@ fun LoginBody() {
                     )
                 }
 
-                Spacer(modifier = Modifier.height(15.dp))
+                // Forget Password link
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "Forget Password?",
+                    fontSize = 14.sp,
+                    color = PrimaryGreen,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .clickable {
 
+                            val intent = Intent(context, ForgetPasswordActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                )
+
+                Spacer(modifier = Modifier.height(15.dp))
 
                 Button(
                     onClick = {
@@ -238,7 +220,6 @@ fun LoginBody() {
                             return@Button
                         }
 
-
                         val auth = FirebaseAuth.getInstance()
                         auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener { task ->
@@ -249,7 +230,7 @@ fun LoginBody() {
                                     // Navigate to Dashboard
                                     val intent = Intent(context, DashboardActivity::class.java)
                                     context.startActivity(intent)
-                                    (context as Activity).finish()
+                                    activity.finish()
 
                                 } else {
                                     Toast.makeText(
@@ -269,72 +250,15 @@ fun LoginBody() {
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                 ) {
-                    Text(
-                        text = "Log In",
-                        fontSize = 17.sp,
-                        color = Color.White
-                    )
-                }
-
-
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // OR divider
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                    Text("OR", modifier = Modifier.padding(horizontal = 20.dp))
-                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(text = "Log In", fontSize = 17.sp, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Google Sign-In Button
-                Button(
-                    onClick = {
-                        Toast.makeText(
-                            context,
-                            "Google Sign-in successful",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    },
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 10.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .padding(horizontal = 15.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.google),
-                            contentDescription = null,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Sign in with Google",
-                            color = Color.Black,
-                            fontSize = 17.sp
-                        )
-                    }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Sign Up Text → redirect to RegistrationActivity
                 Text(
                     buildAnnotatedString {
-                        append("Don't have account? ")
+                        append("Don't have an account? ")
                         withStyle(
                             SpanStyle(
                                 color = PrimaryGreen,
@@ -348,18 +272,16 @@ fun LoginBody() {
                     modifier = Modifier
                         .align(Alignment.CenterHorizontally)
                         .clickable {
-                            context?.let {
-                                val intent =
-                                    android.content.Intent(it, RegistrationActivity::class.java)
-                                context.startActivity(intent)
-                                context.finish()
-                            }
+                            val intent = Intent(context, RegistrationActivity::class.java)
+                            context.startActivity(intent)
+                            activity.finish()
                         }
                 )
             }
         }
     }
 }
+
 
 
 

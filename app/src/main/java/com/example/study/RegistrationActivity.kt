@@ -273,7 +273,7 @@ fun RegistrationBody() {
                                         fullName = fullName
 
 
-                                        )
+                                    )
                                     UserViewModel.addUserToDatabase(userId,model){
                                             success,msg->
                                         if(success){
