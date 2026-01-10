@@ -1,285 +1,498 @@
 package com.example.study
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.study.model.Subject
+import com.example.study.model.Task
+import com.example.study.repository.SubjectRepoImpl
+import com.example.study.repository.TaskRepoImpl
+import com.example.study.repository.userRepoImpl
+import com.example.study.ui.theme.CompletedCardGreen
+import com.example.study.ui.theme.IconBackgroundBlue
+import com.example.study.ui.theme.IconBackgroundGreen
+import com.example.study.ui.theme.IconBackgroundOrange
+import com.example.study.ui.theme.IconBackgroundSuccess
+import com.example.study.ui.theme.PendingCardOrange
+import com.example.study.ui.theme.SubjectCardGreen
+import com.example.study.ui.theme.TaskCardBlue
+import com.example.study.viewmodel.SubjectViewModel
+import com.example.study.viewmodel.TaskViewModel
+import com.example.study.viewmodel.UserViewModel
+import com.google.firebase.auth.FirebaseAuth
+import java.text.SimpleDateFormat
+import java.util.*
 
-class HomeScreen : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            HomeScreenBody()
+@Composable
+fun HomeScreen() {
+    val auth = FirebaseAuth.getInstance()
+    val userId = auth.currentUser?.uid ?: ""
+
+    val userViewModel = remember { UserViewModel(userRepoImpl()) }
+    val subjectViewModel = remember { SubjectViewModel(SubjectRepoImpl()) }
+    val taskViewModel = remember { TaskViewModel(TaskRepoImpl()) }
+
+    var userName by remember { mutableStateOf("") }
+    var subjects by remember { mutableStateOf(listOf<Subject>()) }
+    var tasks by remember { mutableStateOf(listOf<Task>()) }
+
+    // Load user data
+    LaunchedEffect(userId) {
+        if (userId.isNotEmpty()) {
+            userViewModel.getUserById(userId)
+
+            subjectViewModel.getAllSubjects(userId) { success, _, subjectList ->
+                if (success && subjectList != null) {
+                    subjects = subjectList
+                }
+            }
+
+            taskViewModel.getAllTasks(userId) { success, _, taskList ->
+                if (success && taskList != null) {
+                    tasks = taskList
+                }
+            }
+        }
+    }
+
+    // Observe user data
+    val user by userViewModel.users.observeAsState()
+    LaunchedEffect(user) {
+        user?.let {
+            userName = it.fullName.ifEmpty { "Student" }
+        }
+    }
+
+    val completedTasks = tasks.count { it.isCompleted }
+    val pendingTasks = tasks.count { !it.isCompleted }
+
+    // Get today's tasks
+    val today = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
+    val upcomingTasks = tasks.filter {
+        !it.isCompleted && (it.dueDate == today || it.dueDate.contains("Today"))
+    }.sortedBy { it.createdAt }
+
+    LazyColumn(
+
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Background)
+
+    ) {
+        // Welcome Header with Progress
+        item {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(PrimaryGreen)
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Welcome back,",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = userName.ifEmpty { "Student" },
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "!",
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "👋",
+                                fontSize = 26.sp
+                            )
+                        }
+                    }
+
+                    // Points badge
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = Color.White.copy(alpha = 0.25f),
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⚡",
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "0",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Overall Progress Card
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color.White.copy(alpha = 0.2f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Overall Progress",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                            Text(
+                                text = "${if (tasks.isNotEmpty()) (completedTasks * 100) / tasks.size else 0}%",
+                                color = Color.White,
+                                fontSize = 28.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Progress bar
+                        LinearProgressIndicator(
+                            progress = if (tasks.isNotEmpty()) completedTasks.toFloat() / tasks.size else 0f,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
+                            color = Color.White.copy(alpha = 0.6f),
+                            trackColor = Color.White.copy(alpha = 0.2f),
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "$completedTasks of ${tasks.size} tasks completed",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+        }
+
+        // Statistics Cards
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Background)
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Subjects Card
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        count = subjects.size,
+                        label = "Subjects",
+                        icon = R.drawable.baseline_menu_book_24,
+                        backgroundColor = SubjectCardGreen,
+                        iconBackgroundColor = IconBackgroundGreen
+                    )
+
+                    // All Tasks Card
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        count = tasks.size,
+                        label = "All Tasks",
+                        icon = R.drawable.baseline_add_task_24,
+                        backgroundColor = TaskCardBlue,
+                        iconBackgroundColor = IconBackgroundBlue
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Completed Card
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        count = completedTasks,
+                        label = "Completed",
+                        icon = R.drawable.baseline_check_circle_24,
+                        backgroundColor = CompletedCardGreen,
+                        iconBackgroundColor = IconBackgroundSuccess
+                    )
+
+                    // Pending Card
+                    StatCard(
+                        modifier = Modifier.weight(1f),
+                        count = pendingTasks,
+                        label = "Pending",
+                        icon = R.drawable.baseline_access_time_24,
+                        backgroundColor = PendingCardOrange,
+                        iconBackgroundColor = IconBackgroundOrange
+                    )
+                }
+            }
+        }
+
+        // Upcoming Tasks Section
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Background)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_access_time_24),
+                        contentDescription = null,
+                        tint = DarkText,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Upcoming Tasks",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkText
+                    )
+                }
+            }
+        }
+
+        // Upcoming Task Cards
+        if (upcomingTasks.isEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No upcoming tasks for today! 🎉",
+                            color = GrayText,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        } else {
+            items(upcomingTasks) { task ->
+                UpcomingTaskCard(
+                    task = task,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+            }
+        }
+
+        // Motivation Card
+        item {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = PrimaryGreen),
+                elevation = CardDefaults.cardElevation(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "📈",
+                            fontSize = 28.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Keep Going!",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "${pendingTasks} tasks remaining. You've got this!",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Bottom spacing
+        item {
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
 
 @Composable
-fun HomeScreenBody() {
-    Scaffold(
-        containerColor = Background,
-        topBar = { StudyMateTopBar() },
-        bottomBar = { BottomNavBar() }
-    ) { padding ->
+fun StatCard(
+    modifier: Modifier = Modifier,
+    count: Int,
+    label: String,
+    icon: Int,
+    backgroundColor: Color,
+    iconBackgroundColor: Color
+) {
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(3.dp),
+        modifier = modifier.height(160.dp)
+    ) {
         Column(
             modifier = Modifier
-                .padding(padding)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState())
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-
-            Text(
-                text = "Welcome back,",
-                color = GrayText,
-                fontSize = 14.sp
-            )
-            Text(
-                text = "Student",
-                color = DarkText,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Your Study Overview",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = DarkText
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                userScrollEnabled = false
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(iconBackgroundColor, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                item { OverviewCard("3", "Total Subjects", R.drawable.baseline_menu_book_24) }
-                item { OverviewCard("2", "Total Tasks", R.drawable.baseline_task_alt_24) }
-                item { OverviewCard("0", "Completed Tasks", R.drawable.baseline_check_circle_24) }
-                item { PendingCard("2", "Pending Tasks", R.drawable.baseline_access_time_24) }
+                Icon(
+                    painter = painterResource(id = icon),
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = "Recent Tasks",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = DarkText
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            RecentTaskCard("Ccd", "english", "Ddc")
-            RecentTaskCard("Hw", "Math", "Tomorrow")
-
-            Spacer(modifier = Modifier.height(80.dp)) // space above bottom nav
-        }
-    }
-}
-
-/* ---------------- TOP BAR ---------------- */
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun StudyMateTopBar() {
-    TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(id = R.drawable.books),
-                    contentDescription = "App Logo",
-                    tint = Color.Unspecified,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            Column {
                 Text(
-                    text = "Study Mate",
+                    text = count.toString(),
+                    fontSize = 36.sp,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
+                    color = Color.White
+                )
+                Text(
+                    text = label,
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.95f),
+                    fontWeight = FontWeight.Medium
                 )
             }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.White,
-            titleContentColor = DarkText
-        )
-    )
-}
-
-/* ---------------- CARDS ---------------- */
-
-@Composable
-fun OverviewCard(value: String, label: String, iconRes: Int) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(LightGreen, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
-                    tint = PrimaryGreen
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = label, color = GrayText, fontSize = 14.sp)
         }
     }
 }
 
 @Composable
-fun PendingCard(value: String, label: String, iconRes: Int) {
+fun UpcomingTaskCard(
+    task: Task,
+    modifier: Modifier = Modifier
+) {
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(PendingRed.copy(alpha = 0.15f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
-                    tint = PendingRed
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(text = value, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Text(text = label, color = GrayText, fontSize = 14.sp)
-        }
-    }
-}
-
-@Composable
-fun RecentTaskCard(title: String, subject: String, due: String) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(4.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp)
+        elevation = CardDefaults.cardElevation(2.dp),
+        modifier = modifier.fillMaxWidth()
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                Text(subject, color = PrimaryGreen, fontSize = 14.sp)
-                Text("Due: $due", color = GrayText, fontSize = 12.sp)
-            }
-
+            // Color indicator
             Box(
                 modifier = Modifier
-                    .background(PendingRed, RoundedCornerShape(20.dp))
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-            ) {
-                Text("Pending", color = Color.White, fontSize = 12.sp)
+                    .size(12.dp)
+                    .background(PrimaryGreen, CircleShape)
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = task.title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = DarkText
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.baseline_calendar_month_24),
+                        contentDescription = null,
+                        tint = GrayText,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Today",
+                        fontSize = 12.sp,
+                        color = GrayText
+                    )
+                }
             }
         }
     }
-}
-
-
-@Composable
-fun BottomNavBar() {
-    NavigationBar(containerColor = Color.White) {
-        NavigationBarItem(
-            selected = true,
-            onClick = {},
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_home_24),
-                    contentDescription = null
-                )
-            },
-            label = { Text("Home") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_menu_book_24),
-                    contentDescription = null
-                )
-            },
-            label = { Text("Subjects") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_task_alt_24),
-                    contentDescription = null
-                )
-            },
-            label = { Text("Tasks") }
-        )
-        NavigationBarItem(
-            selected = false,
-            onClick = {},
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.baseline_person_24),
-                    contentDescription = null
-                )
-            },
-            label = { Text("Profile") }
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewHomeScreen() {
-    HomeScreenBody()
 }

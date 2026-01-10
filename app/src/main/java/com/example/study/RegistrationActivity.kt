@@ -47,7 +47,7 @@ val White = Color(0xFFFFFFFF)
 val LightGreen = Color(0xFFE7F2EE)
 val DarkText = Color(0xFF2E3A3A)
 val GrayText = Color(0xFF8A9A9A)
-val PendingRed = Color(0xFF9F3A3A)
+val PendingRed = Color(0xFF7C2929)
 val Background = Color(0xFFF9FBFA)
 
 class RegistrationActivity : ComponentActivity() {
@@ -268,7 +268,7 @@ fun RegistrationBody() {
                                     success,msg,userId->
                                 if(success){
                                     val model = User(
-                                        userId = userId,
+                                        id = userId,
                                         email = email,
                                         fullName = fullName
 
@@ -280,6 +280,10 @@ fun RegistrationBody() {
                                             Toast.makeText(context,
                                                 msg,
                                                 Toast.LENGTH_SHORT).show()
+                                            // Navigate to Dashboard
+                                            val intent = Intent(context, DashboardActivity::class.java)
+//                                    context.startActivity(intent)
+//                                    activity.finish()
                                             //activity.finish()
                                         }else{
                                             Toast.makeText(context,

@@ -34,6 +34,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -228,9 +229,12 @@ fun LoginBody() {
                                         .show()
 
                                     // Navigate to Dashboard
-                                    val intent = Intent(context, DashboardActivity::class.java)
-                                    context.startActivity(intent)
-                                    activity.finish()
+//                                    val intent = Intent(context, DashboardActivity::class.java)
+//                                    context.startActivity(intent)
+//                                    activity.finish()
+                                    context.startActivity(
+                                        Intent(context, DashboardActivity::class.java)
+                                    )
 
                                 } else {
                                     Toast.makeText(

@@ -1,21 +1,20 @@
 package com.example.study.model
 
 data class User(
-    val userId:String="",
-    val email: String="",
-    val password:String="",
-    val fullName: String
-
-
-    ){
+    val id: String = "",
+    val fullName: String = "",
+    val email: String = "",
+    val profileImage: String = "",
+    val course: String = "",
+    val semester: String = ""
+) {
     fun toMap(): Map<String, Any?> {
         return mapOf(
-            "userId" to userId,
-            "email" to email,
-            "password" to password,
             "fullName" to fullName,
-
+            "email" to email,
+            "profileImage" to profileImage,
+            "course" to course,
+            "semester" to semester
         )
     }
-
 }

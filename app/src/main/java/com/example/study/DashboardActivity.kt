@@ -8,24 +8,15 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import com.example.study.ui.theme.StudyTheme
 
 class DashboardActivity : ComponentActivity() {
@@ -33,7 +24,9 @@ class DashboardActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            DashboardBody()
+            StudyTheme {
+                DashboardBody()
+            }
         }
     }
 }
@@ -44,12 +37,8 @@ fun DashboardBody() {
     val context = LocalContext.current
     val activity = context as Activity
 
-    val email = activity.intent.getStringExtra("email")
-    val password = activity.intent.getStringExtra("password")
-
     data class NavItem(val label: String, val icon: Int)
     var selectedIndex by remember { mutableStateOf(0) }
-
 
     val navList = listOf(
         NavItem("Home", R.drawable.baseline_home_24),
@@ -58,43 +47,33 @@ fun DashboardBody() {
         NavItem("Profile", R.drawable.baseline_person_24)
     )
 
-
-
     Scaffold(
         topBar = {
-            TopAppBar(// CenterAlignedTopAppBar use garyo bhane center ma aucha
-                //laargeapp bar
-
-                title = { Text("Ecommerce") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Black,
-                    navigationIconContentColor = White,
-                    titleContentColor = White,
-                    actionIconContentColor = White
-                ),
-                actions = {
-                    IconButton(onClick = {
-                        activity.finish()
-
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.baseline_visibility_24),
-                            contentDescription = null
+            if (selectedIndex != 0) { // Don't show top bar on home screen
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = when(selectedIndex) {
+                                1 -> "Subjects"
+                                2 -> "Tasks"
+                                3 -> "Profile"
+                                else -> "Study App"
+                            },
+                            fontWeight = FontWeight.SemiBold
                         )
-                    }
-                    IconButton(onClick = {
-
-                    }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.baseline_keyboard_arrow_down_24),
-                            contentDescription = null
-                        )
-                    }
-                }
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.White,
+                        titleContentColor = DarkText
+                    )
+                )
+            }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = Color.White,
+                contentColor = PrimaryGreen
+            ) {
                 navList.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = {
@@ -104,16 +83,27 @@ fun DashboardBody() {
                             )
                         },
                         label = {
-                            Text(item.label)
+                            Text(
+                                item.label,
+                                fontSize = 12.sp
+                            )
                         },
                         selected = selectedIndex == index,
                         onClick = {
                             selectedIndex = index
-                        }
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = PrimaryGreen,
+                            selectedTextColor = PrimaryGreen,
+                            indicatorColor = LightGreen,
+                            unselectedIconColor = GrayText,
+                            unselectedTextColor = GrayText
+                        )
                     )
                 }
             }
-        }
+        },
+        containerColor = Background
     ) { padding ->
         Box(
             modifier = Modifier

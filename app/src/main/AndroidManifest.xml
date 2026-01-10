@@ -22,17 +22,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".HomeScreen"
-            android:exported="true"
-            android:label="@string/title_activity_home_screen"
-            android:theme="@style/Theme.Study">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".Task"
             android:exported="true"
@@ -55,17 +45,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".Profile"
-            android:exported="true"
-            android:label="@string/title_activity_profile"
-            android:theme="@style/Theme.Study">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".DashboardActivity"
             android:exported="true"
