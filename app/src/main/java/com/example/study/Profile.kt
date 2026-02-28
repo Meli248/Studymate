@@ -38,24 +38,20 @@ fun Profile() {
 
     val userViewModel = remember { UserViewModel(userRepoImpl()) }
 
-    // Observe LiveData
     val user by userViewModel.users.observeAsState()
     val isLoading by userViewModel.loading.observeAsState(false)
 
-    // UI State
     var name by remember { mutableStateOf("") }
     var course by remember { mutableStateOf("") }
     var semester by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
-    // Fetch user once
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
         }
     }
 
-    // Update UI when data arrives
     LaunchedEffect(user) {
         user?.let {
             name = it.fullName
@@ -135,19 +131,9 @@ fun Profile() {
 
                 // Name field with required asterisk
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Name",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = GrayText
-                    )
+                    Text(text = "Name", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = GrayText)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "*",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Red
-                    )
+                    Text(text = "*", fontSize = 14.sp, fontWeight = FontWeight.Medium,color = Color(0xFF7C2929))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 ProfileInfoRow(
@@ -161,19 +147,9 @@ fun Profile() {
 
                 // Email field with required asterisk (read-only)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "Email",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = GrayText
-                    )
+                    Text(text = "Email", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = GrayText)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "*",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Red
-                    )
+                    Text(text = "*", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color(0xFF7C2929))
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 ProfileInfoRow(
@@ -187,12 +163,7 @@ fun Profile() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Course field (optional)
-                Text(
-                    text = "Course (Optional)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = GrayText
-                )
+                Text(text = "Course (Optional)", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = GrayText)
                 Spacer(modifier = Modifier.height(8.dp))
                 ProfileInfoRow(
                     icon = R.drawable.baseline_menu_book_24,
@@ -204,12 +175,7 @@ fun Profile() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Semester field (optional)
-                Text(
-                    text = "Semester (Optional)",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = GrayText
-                )
+                Text(text = "Semester (Optional)", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = GrayText)
                 Spacer(modifier = Modifier.height(8.dp))
                 ProfileInfoRow(
                     icon = R.drawable.baseline_school_24,
@@ -220,10 +186,8 @@ fun Profile() {
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Update Profile Button
                 Button(
                     onClick = {
-                        // Validate required fields
                         if (name.isBlank()) {
                             Toast.makeText(context, "Name is required", Toast.LENGTH_SHORT).show()
                             return@Button
@@ -250,17 +214,9 @@ fun Profile() {
                     enabled = !isLoading
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = Color.White
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
                     } else {
-                        Text(
-                            text = "Update Profile",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
+                        Text(text = "Update Profile", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
@@ -279,7 +235,7 @@ fun Profile() {
         ) {
             Column(modifier = Modifier.padding(20.dp)) {
 
-                // Logout option
+                // Logout
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -306,17 +262,12 @@ fun Profile() {
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Logout",
-                        fontSize = 16.sp,
-                        color = DarkText,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = "Logout", fontSize = 16.sp, color = DarkText, fontWeight = FontWeight.Medium)
                 }
 
                 Divider(color = FieldGray, thickness = 1.dp)
 
-                // Delete Account option
+                // Delete Account
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -331,17 +282,13 @@ fun Profile() {
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Delete Account",
-                        fontSize = 16.sp,
-                        color = Color(0xFF7C2929),
-                        fontWeight = FontWeight.Medium
-                    )
+                    Text(text = "Delete Account", fontSize = 16.sp, color = Color(0xFF7C2929), fontWeight = FontWeight.Medium)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(100.dp))
+        // Removed large gap — just a small bottom padding
+        Spacer(modifier = Modifier.height(24.dp))
     }
 
     // Delete Account Confirmation Dialog
@@ -349,11 +296,7 @@ fun Profile() {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = {
-                Text(
-                    text = "Delete Account",
-                    fontWeight = FontWeight.Bold,
-                    color = DarkText
-                )
+                Text(text = "Delete Account", fontWeight = FontWeight.Bold, color = DarkText)
             },
             text = {
                 Text(
@@ -366,7 +309,6 @@ fun Profile() {
                     onClick = {
                         userViewModel.deleteAccount(userId) { success, message ->
                             if (success) {
-                                // Also delete from Firebase Auth
                                 currentUser?.delete()?.addOnCompleteListener { task ->
                                     if (task.isSuccessful) {
                                         Toast.makeText(context, "Account deleted successfully", Toast.LENGTH_SHORT).show()
@@ -375,7 +317,7 @@ fun Profile() {
                                         context.startActivity(intent)
                                         activity.finish()
                                     } else {
-                                        Toast.makeText(context, "Error deleting account: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             } else {
@@ -433,6 +375,7 @@ fun ProfileInfoRow(
             value = value,
             onValueChange = onValueChange,
             enabled = enabled,
+            singleLine = true,
             placeholder = {
                 Text(
                     text = placeholder.ifEmpty { "Enter value" },
@@ -449,8 +392,7 @@ fun ProfileInfoRow(
                 unfocusedBorderColor = Color.Transparent,
                 disabledBorderColor = Color.Transparent,
                 disabledTextColor = DarkText.copy(alpha = 0.6f)
-            ),
-            singleLine = true
+            )
         )
     }
 }

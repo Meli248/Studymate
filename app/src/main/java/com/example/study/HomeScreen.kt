@@ -1,9 +1,9 @@
 package com.example.study
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -49,52 +49,40 @@ fun HomeScreen() {
     var subjects by remember { mutableStateOf(listOf<Subject>()) }
     var tasks by remember { mutableStateOf(listOf<Task>()) }
 
-    // Load user data
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
 
             subjectViewModel.getAllSubjects(userId) { success, _, subjectList ->
-                if (success && subjectList != null) {
-                    subjects = subjectList
-                }
+                if (success && subjectList != null) subjects = subjectList
             }
 
             taskViewModel.getAllTasks(userId) { success, _, taskList ->
-                if (success && taskList != null) {
-                    tasks = taskList
-                }
+                if (success && taskList != null) tasks = taskList
             }
         }
     }
 
-    // Observe user data
     val user by userViewModel.users.observeAsState()
     LaunchedEffect(user) {
-        user?.let {
-            userName = it.fullName.ifEmpty { "Student" }
-        }
+        user?.let { userName = it.fullName.ifEmpty { "Student" } }
     }
 
     val completedTasks = tasks.count { it.isCompleted }
     val pendingTasks = tasks.count { !it.isCompleted }
 
-    // Get today's tasks
     val today = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
     val upcomingTasks = tasks.filter {
         !it.isCompleted && (it.dueDate == today || it.dueDate.contains("Today"))
     }.sortedBy { it.createdAt }
 
     LazyColumn(
-
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
-
     ) {
         // Welcome Header with Progress
         item {
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -113,29 +101,16 @@ fun HomeScreen() {
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = userName.ifEmpty { "Student" },
-                                color = Color.White,
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "!",
-                                fontSize = 28.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "👋",
-                                fontSize = 26.sp
-                            )
-                        }
+                        // Removed 👋 emoji — just name + !
+                        Text(
+                            text = "${userName.ifEmpty { "Student" }}!",
+                            color = Color.White,
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
-                    // Points badge
+                    // Streak badge — flash.png instead of ⚡ emoji
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color.White.copy(alpha = 0.25f),
@@ -145,9 +120,10 @@ fun HomeScreen() {
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "⚡",
-                                fontSize = 16.sp
+                            Image(
+                                painter = painterResource(id = R.drawable.flash),
+                                contentDescription = "streak",
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -162,15 +138,12 @@ fun HomeScreen() {
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Overall Progress Card
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = Color.White.copy(alpha = 0.2f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
-                    ) {
+                    Column(modifier = Modifier.padding(20.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -192,7 +165,6 @@ fun HomeScreen() {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Progress bar
                         LinearProgressIndicator(
                             progress = if (tasks.isNotEmpty()) completedTasks.toFloat() / tasks.size else 0f,
                             modifier = Modifier
@@ -226,7 +198,6 @@ fun HomeScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Subjects Card
                     StatCard(
                         modifier = Modifier.weight(1f),
                         count = subjects.size,
@@ -235,8 +206,6 @@ fun HomeScreen() {
                         backgroundColor = SubjectCardGreen,
                         iconBackgroundColor = IconBackgroundGreen
                     )
-
-                    // All Tasks Card
                     StatCard(
                         modifier = Modifier.weight(1f),
                         count = tasks.size,
@@ -253,7 +222,6 @@ fun HomeScreen() {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Completed Card
                     StatCard(
                         modifier = Modifier.weight(1f),
                         count = completedTasks,
@@ -262,8 +230,6 @@ fun HomeScreen() {
                         backgroundColor = CompletedCardGreen,
                         iconBackgroundColor = IconBackgroundSuccess
                     )
-
-                    // Pending Card
                     StatCard(
                         modifier = Modifier.weight(1f),
                         count = pendingTasks,
@@ -276,7 +242,7 @@ fun HomeScreen() {
             }
         }
 
-        // Upcoming Tasks Section
+        // Upcoming Tasks Section Header
         item {
             Column(
                 modifier = Modifier
@@ -305,88 +271,89 @@ fun HomeScreen() {
             }
         }
 
-        // Upcoming Task Cards
-        if (upcomingTasks.isEmpty()) {
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(2.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No upcoming tasks for today! 🎉",
-                            color = GrayText,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-            }
-        } else {
-            items(upcomingTasks) { task ->
-                UpcomingTaskCard(
-                    task = task,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
-                )
-            }
-        }
-
-        // Motivation Card
+        // Upcoming Task Cards or empty state + motivation card
         item {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryGreen),
-                elevation = CardDefaults.cardElevation(4.dp),
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(horizontal = 16.dp)
             ) {
-                Row(
-                    modifier = Modifier.padding(20.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
+                if (upcomingTasks.isEmpty()) {
+                    Card(
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(2.dp),
                         modifier = Modifier
-                            .size(56.dp)
-                            .background(Color.White.copy(alpha = 0.25f), CircleShape),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
                     ) {
-                        Text(
-                            text = "📈",
-                            fontSize = 28.sp
-                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Removed 🎉 emoji — plain text
+                            Text(
+                                text = "No upcoming tasks for today!",
+                                color = GrayText,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "Keep Going!",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "${pendingTasks} tasks remaining. You've got this!",
-                            fontSize = 13.sp,
-                            color = Color.White.copy(alpha = 0.9f)
+                } else {
+                    upcomingTasks.forEach { task ->
+                        UpcomingTaskCard(
+                            task = task,
+                            modifier = Modifier.padding(bottom = 12.dp)
                         )
                     }
                 }
-            }
-        }
 
-        // Bottom spacing
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
+                // Motivation Card — diagram.png instead of 📈 emoji
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryGreen),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.diagram),
+                                contentDescription = "progress chart",
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Keep Going!",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                            Text(
+                                text = "$pendingTasks tasks remaining. You've got this!",
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(80.dp))
+            }
         }
     }
 }
@@ -459,15 +426,12 @@ fun UpcomingTaskCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Color indicator
             Box(
                 modifier = Modifier
                     .size(12.dp)
                     .background(PrimaryGreen, CircleShape)
             )
-
             Spacer(modifier = Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = task.title,
@@ -486,11 +450,7 @@ fun UpcomingTaskCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Today",
-                        fontSize = 12.sp,
-                        color = GrayText
-                    )
+                    Text(text = "Today", fontSize = 12.sp, color = GrayText)
                 }
             }
         }

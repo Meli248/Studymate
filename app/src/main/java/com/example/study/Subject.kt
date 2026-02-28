@@ -43,14 +43,11 @@ fun Subject() {
     var showEditDialog by remember { mutableStateOf(false) }
     var editingSubject by remember { mutableStateOf<Subject?>(null) }
 
-    // Load subjects from Firebase
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             subjectViewModel.getAllSubjects(userId) { success, message, subjectList ->
                 if (success && subjectList != null) {
                     subjects = subjectList
-
-                    // Load tasks for each subject
                     subjectList.forEach { subject ->
                         taskViewModel.getAllTasks(userId) { taskSuccess, _, taskList ->
                             if (taskSuccess && taskList != null) {
@@ -81,6 +78,7 @@ fun Subject() {
                     value = subjectName,
                     onValueChange = { subjectName = it },
                     placeholder = { Text("Enter subject name", color = GrayText.copy(alpha = 0.6f)) },
+                    singleLine = true,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -91,7 +89,6 @@ fun Subject() {
                     )
                 )
 
-                // Add Button
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -99,21 +96,11 @@ fun Subject() {
                         .clickable {
                             if (subjectName.isNotBlank()) {
                                 subjectViewModel.addSubject(userId, subjectName) { success, message, subjectId ->
-                                    if (success) {
-                                        subjectName = ""
-                                        Toast
-                                            .makeText(context, message, Toast.LENGTH_SHORT)
-                                            .show()
-                                    } else {
-                                        Toast
-                                            .makeText(context, message, Toast.LENGTH_SHORT)
-                                            .show()
-                                    }
+                                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                    if (success) subjectName = ""
                                 }
                             } else {
-                                Toast
-                                    .makeText(context, "Please enter subject name", Toast.LENGTH_SHORT)
-                                    .show()
+                                Toast.makeText(context, "Please enter subject name", Toast.LENGTH_SHORT).show()
                             }
                         },
                     contentAlignment = Alignment.Center
@@ -129,7 +116,6 @@ fun Subject() {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Subjects List
             if (subjects.isEmpty()) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -151,9 +137,7 @@ fun Subject() {
                     }
                 }
             } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(subjects) { subject ->
                         val subjectTasks = tasksMap[subject.subjectId] ?: emptyList()
                         SubjectCard(
@@ -170,16 +154,12 @@ fun Subject() {
                             }
                         )
                     }
-
-                    item {
-                        Spacer(modifier = Modifier.height(80.dp))
-                    }
+                    item { Spacer(modifier = Modifier.height(80.dp)) }
                 }
             }
         }
     }
 
-    // Edit Subject Dialog
     if (showEditDialog && editingSubject != null) {
         EditSubjectDialog(
             subject = editingSubject!!,
@@ -216,16 +196,13 @@ fun SubjectCard(
         elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { if (tasks.isNotEmpty()) expanded = !expanded },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Subject Icon
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -256,7 +233,6 @@ fun SubjectCard(
                     )
                 }
 
-                // Edit Button
                 IconButton(
                     onClick = onEdit,
                     modifier = Modifier
@@ -273,7 +249,6 @@ fun SubjectCard(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // Delete Button
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
@@ -289,7 +264,6 @@ fun SubjectCard(
                 }
             }
 
-            // Show tasks if expanded and has tasks
             if (expanded && tasks.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider()
@@ -325,7 +299,7 @@ fun SubjectCard(
                                 color = if (task.isCompleted) GrayText else DarkText
                             )
                             Text(
-                                text = "📅 ${task.dueDate}",
+                                text = task.dueDate,
                                 fontSize = 12.sp,
                                 color = GrayText
                             )
@@ -380,6 +354,7 @@ fun EditSubjectDialog(
                     value = subjectName,
                     onValueChange = { subjectName = it },
                     placeholder = { Text("Enter subject name", color = GrayText.copy(alpha = 0.5f)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -402,6 +377,7 @@ fun EditSubjectDialog(
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = FieldGray,
                             contentColor = DarkText
@@ -409,8 +385,9 @@ fun EditSubjectDialog(
                     ) {
                         Text(
                             text = "Cancel",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1
                         )
                     }
 
@@ -426,13 +403,15 @@ fun EditSubjectDialog(
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
                         Text(
                             text = "Update",
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = Color.White
+                            color = Color.White,
+                            maxLines = 1
                         )
                     }
                 }

@@ -47,14 +47,12 @@ fun Task() {
     var showEditDialog by remember { mutableStateOf(false) }
     var editingTask by remember { mutableStateOf<Task?>(null) }
 
-    // Load data
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             taskViewModel.getAllTasks(userId) { success, _, taskList ->
                 if (success && taskList != null) {
                     tasks = taskList.sortedWith(
-                        compareBy<Task> { it.isCompleted }
-                            .thenBy { parseDateString(it.dueDate) }
+                        compareBy<Task> { it.isCompleted }.thenBy { parseDateString(it.dueDate) }
                     )
                 }
             }
@@ -67,7 +65,22 @@ fun Task() {
         }
     }
 
-    // Get today's date
+    // Optimistically toggle task in local state so UI responds immediately
+    fun handleToggle(taskId: String, currentIsCompleted: Boolean) {
+        val newValue = !currentIsCompleted
+        tasks = tasks.map { t ->
+            if (t.taskId == taskId) t.copy(isCompleted = newValue) else t
+        }.sortedWith(compareBy<Task> { it.isCompleted }.thenBy { parseDateString(it.dueDate) })
+        taskViewModel.toggleTaskCompletion(taskId, newValue) { _, _ -> }
+    }
+
+    fun handleDelete(taskId: String) {
+        tasks = tasks.filter { it.taskId != taskId }
+        taskViewModel.deleteTask(taskId) { _, message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+
     val today = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
     val todayTasks = tasks.filter { !it.isCompleted && (it.dueDate == today || it.dueDate.contains("Today")) }
     val upcomingTasks = tasks.filter { !it.isCompleted && it.dueDate != today && !it.dueDate.contains("Today") }
@@ -79,78 +92,47 @@ fun Task() {
                 .fillMaxSize()
                 .background(Background)
         ) {
-            // Today's overdue tasks highlighted
             if (todayTasks.isNotEmpty()) {
-                items(todayTasks) { task ->
+                items(todayTasks, key = { it.taskId }) { task ->
                     TaskItemCard(
                         task = task,
                         isOverdue = true,
                         onToggleComplete = { taskId, isCompleted ->
-                            taskViewModel.toggleTaskCompletion(taskId, !isCompleted) { success, _ ->
-                                // Tasks will auto-update via real-time listener
-                            }
+                            handleToggle(taskId, isCompleted)
                         },
-                        onEdit = {
-                            editingTask = task
-                            showEditDialog = true
-                        },
-                        onDelete = {
-                            taskViewModel.deleteTask(task.taskId) { success, message ->
-                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            }
-                        },
+                        onEdit = { editingTask = task; showEditDialog = true },
+                        onDelete = { handleDelete(task.taskId) },
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                     )
                 }
             }
 
-            // Other upcoming tasks
-            items(upcomingTasks) { task ->
+            items(upcomingTasks, key = { it.taskId }) { task ->
                 TaskItemCard(
                     task = task,
                     isOverdue = false,
                     onToggleComplete = { taskId, isCompleted ->
-                        taskViewModel.toggleTaskCompletion(taskId, !isCompleted) { success, _ ->
-                            // Tasks will auto-update via real-time listener
-                        }
+                        handleToggle(taskId, isCompleted)
                     },
-                    onEdit = {
-                        editingTask = task
-                        showEditDialog = true
-                    },
-                    onDelete = {
-                        taskViewModel.deleteTask(task.taskId) { success, message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                    onEdit = { editingTask = task; showEditDialog = true },
+                    onDelete = { handleDelete(task.taskId) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
 
-            // Completed tasks
-            items(completedTasks) { task ->
+            items(completedTasks, key = { it.taskId }) { task ->
                 TaskItemCard(
                     task = task,
                     isOverdue = false,
                     onToggleComplete = { taskId, isCompleted ->
-                        taskViewModel.toggleTaskCompletion(taskId, !isCompleted) { success, _ ->
-                            // Tasks will auto-update via real-time listener
-                        }
+                        handleToggle(taskId, isCompleted)
                     },
-                    onEdit = {
-                        editingTask = task
-                        showEditDialog = true
-                    },
-                    onDelete = {
-                        taskViewModel.deleteTask(task.taskId) { success, message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        }
-                    },
+                    onEdit = { editingTask = task; showEditDialog = true },
+                    onDelete = { handleDelete(task.taskId) },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
 
-            // Empty state
             if (tasks.isEmpty()) {
                 item {
                     Card(
@@ -177,13 +159,9 @@ fun Task() {
                 }
             }
 
-            // Bottom spacing for FAB
-            item {
-                Spacer(modifier = Modifier.height(100.dp))
-            }
+            item { Spacer(modifier = Modifier.height(100.dp)) }
         }
 
-        // Floating Action Button
         FloatingActionButton(
             onClick = { showAddDialog = true },
             modifier = Modifier
@@ -201,7 +179,6 @@ fun Task() {
         }
     }
 
-    // Add Task Dialog
     if (showAddDialog) {
         AddTaskDialog(
             subjects = subjects,
@@ -217,15 +194,12 @@ fun Task() {
                     priority = priority
                 ) { success, message, _ ->
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    if (success) {
-                        showAddDialog = false
-                    }
+                    if (success) showAddDialog = false
                 }
             }
         )
     }
 
-    // Edit Task Dialog
     if (showEditDialog && editingTask != null) {
         EditTaskDialog(
             task = editingTask!!,
@@ -300,6 +274,7 @@ fun TaskItemCard(
 
             Spacer(modifier = Modifier.width(12.dp))
 
+            // Task info — title, subject badge, then date below
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = task.title,
@@ -309,26 +284,28 @@ fun TaskItemCard(
                     textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    // Subject badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = LightGreen,
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Text(
-                            text = task.subjectName,
-                            fontSize = 12.sp,
-                            color = PrimaryGreen,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                Spacer(modifier = Modifier.height(4.dp))
 
-                    // Date
+                // Subject badge
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = LightGreen
+                ) {
+                    Text(
+                        text = task.subjectName,
+                        fontSize = 12.sp,
+                        color = PrimaryGreen,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Date row — always on its own line, single line guaranteed
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_calendar_month_24),
                         contentDescription = null,
@@ -339,6 +316,7 @@ fun TaskItemCard(
                     Text(
                         text = task.dueDate,
                         fontSize = 12.sp,
+                        maxLines = 1,
                         color = if (isOverdue && !task.isCompleted) Color(0xFFE53935) else GrayText
                     )
                 }
@@ -444,6 +422,7 @@ fun AddTaskDialog(
                     value = taskTitle,
                     onValueChange = { taskTitle = it },
                     placeholder = { Text("Enter task title", color = GrayText.copy(alpha = 0.5f)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -464,12 +443,7 @@ fun AddTaskDialog(
                         color = DarkText
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "*",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Red
-                    )
+                    Text(text = "*", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Red)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -483,18 +457,13 @@ fun AddTaskDialog(
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         subjects.take(3).forEach { subject ->
                             FilterChip(
                                 selected = selectedSubject?.subjectId == subject.subjectId,
                                 onClick = { selectedSubject = subject },
-                                label = {
-                                    Text(
-                                        subject.name,
-                                        fontSize = 14.sp
-                                    )
-                                },
+                                label = { Text(subject.name, fontSize = 13.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = PrimaryGreen,
                                     selectedLabelColor = Color.White,
@@ -528,6 +497,7 @@ fun AddTaskDialog(
                         },
                         onValueChange = {},
                         enabled = false,
+                        singleLine = true,
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(id = R.drawable.baseline_calendar_month_24),
@@ -582,16 +552,13 @@ fun AddTaskDialog(
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = FieldGray,
                             contentColor = DarkText
                         )
                     ) {
-                        Text(
-                            text = "Cancel",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Cancel", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
 
                     Button(
@@ -604,32 +571,19 @@ fun AddTaskDialog(
                                 Toast.makeText(context, "Please select a subject", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
-
                             val finalDueDate = selectedDate.ifEmpty {
                                 SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
                             }
-
-                            onAddTask(
-                                taskTitle,
-                                selectedSubject!!.subjectId,
-                                selectedSubject!!.name,
-                                finalDueDate,
-                                note,
-                                priority
-                            )
+                            onAddTask(taskTitle, selectedSubject!!.subjectId, selectedSubject!!.name, finalDueDate, note, priority)
                         },
                         modifier = Modifier
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
-                        Text(
-                            text = "Add Task",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
+                        Text(text = "Add Task", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1)
                     }
                 }
             }
@@ -703,6 +657,7 @@ fun EditTaskDialog(
                     value = taskTitle,
                     onValueChange = { taskTitle = it },
                     placeholder = { Text("Enter task title", color = GrayText.copy(alpha = 0.5f)) },
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -723,12 +678,7 @@ fun EditTaskDialog(
                         color = DarkText
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "*",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Red
-                    )
+                    Text(text = "*", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Red)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -742,18 +692,13 @@ fun EditTaskDialog(
                 } else {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         subjects.take(3).forEach { subject ->
                             FilterChip(
                                 selected = selectedSubject?.subjectId == subject.subjectId,
                                 onClick = { selectedSubject = subject },
-                                label = {
-                                    Text(
-                                        subject.name,
-                                        fontSize = 14.sp
-                                    )
-                                },
+                                label = { Text(subject.name, fontSize = 13.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
                                     selectedContainerColor = PrimaryGreen,
                                     selectedLabelColor = Color.White,
@@ -785,6 +730,7 @@ fun EditTaskDialog(
                         value = selectedDate,
                         onValueChange = {},
                         enabled = false,
+                        singleLine = true,
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(id = R.drawable.baseline_calendar_month_24),
@@ -839,16 +785,13 @@ fun EditTaskDialog(
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = FieldGray,
                             contentColor = DarkText
                         )
                     ) {
-                        Text(
-                            text = "Cancel",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Text(text = "Cancel", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
 
                     Button(
@@ -861,7 +804,6 @@ fun EditTaskDialog(
                                 Toast.makeText(context, "Please select a subject", Toast.LENGTH_SHORT).show()
                                 return@Button
                             }
-
                             onUpdate(
                                 taskTitle,
                                 selectedSubject!!.subjectId,
@@ -875,14 +817,10 @@ fun EditTaskDialog(
                             .weight(1f)
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
-                        Text(
-                            text = "Update",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White
-                        )
+                        Text(text = "Update", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1)
                     }
                 }
             }
@@ -890,7 +828,6 @@ fun EditTaskDialog(
     }
 }
 
-// Helper function to parse date strings
 fun parseDateString(dateStr: String): Date {
     return try {
         SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).parse(dateStr) ?: Date()

@@ -11,8 +11,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +27,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
@@ -53,10 +56,11 @@ fun ForgetPasswordBody() {
         modifier = Modifier
             .fillMaxSize()
             .background(Color.White)
+            .verticalScroll(rememberScrollState())
     ) {
         // Top Image
         Image(
-            painter = painterResource(id = R.drawable.f), // Replace with your image
+            painter = painterResource(id = R.drawable.f),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
@@ -99,9 +103,7 @@ fun ForgetPasswordBody() {
             Spacer(modifier = Modifier.height(18.dp))
 
             // Email Field
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     "Email",
                     fontSize = 16.sp,
@@ -112,7 +114,11 @@ fun ForgetPasswordBody() {
                     value = email,
                     onValueChange = { email = it },
                     placeholder = { Text("Enter your email address") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Email,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
@@ -125,7 +131,6 @@ fun ForgetPasswordBody() {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
 
             Button(
                 onClick = {
@@ -158,16 +163,10 @@ fun ForgetPasswordBody() {
 
             Spacer(modifier = Modifier.height(14.dp))
 
-
             Text(
                 buildAnnotatedString {
                     append("Already have an account? ")
-                    withStyle(
-                        SpanStyle(
-                            color = PrimaryGreen,
-                            fontWeight = FontWeight.Medium
-                        )
-                    ) {
+                    withStyle(SpanStyle(color = PrimaryGreen, fontWeight = FontWeight.Medium)) {
                         append("Login")
                     }
                 },
@@ -180,9 +179,12 @@ fun ForgetPasswordBody() {
                         activity.finish()
                     }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
+
 @Preview
 @Composable
 fun PreviewForgetPassword() {
