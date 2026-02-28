@@ -1,10 +1,26 @@
 package com.example.study.viewmodel
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import com.example.study.model.Subject
 import com.example.study.repository.SubjectRepo
+import com.example.study.repository.SubjectRepoImpl
 import com.google.firebase.database.FirebaseDatabase
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
-class SubjectViewModel(private val repo: SubjectRepo) {
+class SubjectViewModel(private val repo: SubjectRepo) : ViewModel() {
+
+    private val _subjects = MutableStateFlow<List<Subject>>(emptyList())
+    val subjects: StateFlow<List<Subject>> = _subjects
+
+    fun loadSubjects(userId: String) {
+        repo.getAllSubjects(userId) { success, _, subjectList ->
+            if (success && subjectList != null) {
+                _subjects.value = subjectList
+            }
+        }
+    }
 
     fun addSubject(
         userId: String,
@@ -18,13 +34,8 @@ class SubjectViewModel(private val repo: SubjectRepo) {
             name = name,
             createdAt = System.currentTimeMillis()
         )
-
         repo.addSubject(subjectId, subject) { success, message ->
-            if (success) {
-                callback(true, message, subjectId)
-            } else {
-                callback(false, message, null)
-            }
+            callback(success, message, if (success) subjectId else null)
         }
     }
 
@@ -40,6 +51,7 @@ class SubjectViewModel(private val repo: SubjectRepo) {
         subjectId: String,
         callback: (Boolean, String) -> Unit
     ) {
+        _subjects.value = _subjects.value.filter { it.subjectId != subjectId }
         repo.deleteSubject(subjectId, callback)
     }
 
@@ -48,5 +60,14 @@ class SubjectViewModel(private val repo: SubjectRepo) {
         callback: (Boolean, String, List<Subject>?) -> Unit
     ) {
         repo.getAllSubjects(userId, callback)
+    }
+
+    companion object {
+        val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                return SubjectViewModel(SubjectRepoImpl()) as T
+            }
+        }
     }
 }

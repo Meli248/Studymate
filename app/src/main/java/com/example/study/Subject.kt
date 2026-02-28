@@ -16,50 +16,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.study.model.Subject
 import com.example.study.model.Task
-import com.example.study.repository.SubjectRepoImpl
-import com.example.study.repository.TaskRepoImpl
 import com.example.study.viewmodel.SubjectViewModel
 import com.example.study.viewmodel.TaskViewModel
-import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun Subject() {
+fun Subject(
+    subjectViewModel: SubjectViewModel,
+    taskViewModel: TaskViewModel
+) {
     val context = LocalContext.current
-    val auth = FirebaseAuth.getInstance()
-    val userId = auth.currentUser?.uid ?: ""
 
-    val subjectViewModel = remember { SubjectViewModel(SubjectRepoImpl()) }
-    val taskViewModel = remember { TaskViewModel(TaskRepoImpl()) }
+    val subjects by subjectViewModel.subjects.collectAsState()
+    val allTasks by taskViewModel.tasks.collectAsState()
 
-    var subjects by remember { mutableStateOf(listOf<Subject>()) }
-    var tasksMap by remember { mutableStateOf(mapOf<String, List<Task>>()) }
     var subjectName by remember { mutableStateOf("") }
     var showEditDialog by remember { mutableStateOf(false) }
     var editingSubject by remember { mutableStateOf<Subject?>(null) }
 
-    LaunchedEffect(userId) {
-        if (userId.isNotEmpty()) {
-            subjectViewModel.getAllSubjects(userId) { success, message, subjectList ->
-                if (success && subjectList != null) {
-                    subjects = subjectList
-                    subjectList.forEach { subject ->
-                        taskViewModel.getAllTasks(userId) { taskSuccess, _, taskList ->
-                            if (taskSuccess && taskList != null) {
-                                val subjectTasks = taskList.filter { it.subjectId == subject.subjectId }
-                                tasksMap = tasksMap + (subject.subjectId to subjectTasks)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    val userId = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -68,7 +47,6 @@ fun Subject() {
                 .background(Background)
                 .padding(16.dp)
         ) {
-            // Add Subject Input Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -95,7 +73,7 @@ fun Subject() {
                         .background(PrimaryGreen, RoundedCornerShape(12.dp))
                         .clickable {
                             if (subjectName.isNotBlank()) {
-                                subjectViewModel.addSubject(userId, subjectName) { success, message, subjectId ->
+                                subjectViewModel.addSubject(userId, subjectName) { success, message, _ ->
                                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                                     if (success) subjectName = ""
                                 }
@@ -124,22 +102,16 @@ fun Subject() {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(40.dp),
+                        modifier = Modifier.fillMaxWidth().padding(40.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "No subjects yet. Add your first subject!",
-                            color = GrayText,
-                            fontSize = 14.sp
-                        )
+                        Text("No subjects yet. Add your first subject!", color = GrayText, fontSize = 14.sp)
                     }
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(subjects) { subject ->
-                        val subjectTasks = tasksMap[subject.subjectId] ?: emptyList()
+                        val subjectTasks = allTasks.filter { it.subjectId == subject.subjectId }
                         SubjectCard(
                             subject = subject,
                             tasks = subjectTasks,
@@ -154,7 +126,7 @@ fun Subject() {
                             }
                         )
                     }
-                    item { Spacer(modifier = Modifier.height(80.dp)) }
+                    item { Spacer(modifier = Modifier.height(35.dp)) }
                 }
             }
         }
@@ -220,12 +192,7 @@ fun SubjectCard(
                 Spacer(modifier = Modifier.width(16.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = subject.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = DarkText
-                    )
+                    Text(text = subject.name, fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = DarkText)
                     Text(
                         text = "${tasks.size} task${if (tasks.size != 1) "s" else ""}",
                         fontSize = 14.sp,
@@ -235,9 +202,7 @@ fun SubjectCard(
 
                 IconButton(
                     onClick = onEdit,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(LightGreen, RoundedCornerShape(10.dp))
+                    modifier = Modifier.size(40.dp).background(LightGreen, RoundedCornerShape(10.dp))
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_edit_24),
@@ -251,14 +216,12 @@ fun SubjectCard(
 
                 IconButton(
                     onClick = onDelete,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(PendingRed.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                    modifier = Modifier.size(40.dp).background(Color(0xFF7C2929).copy(alpha = 0.12f), RoundedCornerShape(10.dp))
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_delete_24),
                         contentDescription = "Delete",
-                        tint = PendingRed,
+                        tint = Color(0xFF7C2929),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -298,11 +261,7 @@ fun SubjectCard(
                                 fontWeight = FontWeight.Medium,
                                 color = if (task.isCompleted) GrayText else DarkText
                             )
-                            Text(
-                                text = task.dueDate,
-                                fontSize = 12.sp,
-                                color = GrayText
-                            )
+                            Text(text = task.dueDate, fontSize = 12.sp, color = GrayText)
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -325,35 +284,17 @@ fun EditSubjectDialog(
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = "Edit Subject",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = DarkText
-                )
-
+            Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
+                Text("Edit Subject", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = DarkText)
                 Spacer(modifier = Modifier.height(20.dp))
 
-                Text(
-                    text = "Subject Name",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = DarkText
-                )
+                Text("Subject Name", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = DarkText)
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = subjectName,
                     onValueChange = { subjectName = it },
-                    placeholder = { Text("Enter subject name", color = GrayText.copy(alpha = 0.5f)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -367,28 +308,14 @@ fun EditSubjectDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(
                         onClick = onDismiss,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
+                        modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = FieldGray,
-                            contentColor = DarkText
-                        )
+                        colors = ButtonDefaults.buttonColors(containerColor = FieldGray, contentColor = DarkText)
                     ) {
-                        Text(
-                            text = "Cancel",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            maxLines = 1
-                        )
+                        Text("Cancel", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                     }
 
                     Button(
@@ -399,29 +326,14 @@ fun EditSubjectDialog(
                             }
                             onUpdate(subjectName)
                         },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
+                        modifier = Modifier.weight(1f).height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
-                        Text(
-                            text = "Update",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color.White,
-                            maxLines = 1
-                        )
+                        Text("Update", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
         }
     }
-}
-
-@Preview
-@Composable
-fun PreviewSubject() {
-    Subject()
 }

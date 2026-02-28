@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,17 +16,32 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.example.study.ui.theme.StudyTheme
+import com.example.study.viewmodel.SubjectViewModel
+import com.example.study.viewmodel.TaskViewModel
+import com.google.firebase.auth.FirebaseAuth
 
 class DashboardActivity : ComponentActivity() {
+
+    // Shared ViewModels — single instance for the whole activity
+    private val taskViewModel: TaskViewModel by viewModels { TaskViewModel.Factory }
+    private val subjectViewModel: SubjectViewModel by viewModels { SubjectViewModel.Factory }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Start loading data once
+        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        if (userId.isNotEmpty()) {
+            taskViewModel.loadTasks(userId)
+            subjectViewModel.loadSubjects(userId)
+        }
+
         enableEdgeToEdge()
         setContent {
             StudyTheme {
-                DashboardBody()
+                DashboardBody(taskViewModel, subjectViewModel)
             }
         }
     }
@@ -33,7 +49,10 @@ class DashboardActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardBody() {
+fun DashboardBody(
+    taskViewModel: TaskViewModel,
+    subjectViewModel: SubjectViewModel
+) {
     val context = LocalContext.current
     val activity = context as Activity
 
@@ -49,11 +68,11 @@ fun DashboardBody() {
 
     Scaffold(
         topBar = {
-            if (selectedIndex != 0) { // Don't show top bar on home screen
+            if (selectedIndex != 0) {
                 TopAppBar(
                     title = {
                         Text(
-                            text = when(selectedIndex) {
+                            text = when (selectedIndex) {
                                 1 -> "Subjects"
                                 2 -> "Tasks"
                                 3 -> "Profile"
@@ -82,16 +101,9 @@ fun DashboardBody() {
                                 contentDescription = null
                             )
                         },
-                        label = {
-                            Text(
-                                item.label,
-                                fontSize = 12.sp
-                            )
-                        },
+                        label = { Text(item.label, fontSize = 12.sp) },
                         selected = selectedIndex == index,
-                        onClick = {
-                            selectedIndex = index
-                        },
+                        onClick = { selectedIndex = index },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PrimaryGreen,
                             selectedTextColor = PrimaryGreen,
@@ -111,20 +123,12 @@ fun DashboardBody() {
                 .padding(padding)
         ) {
             when (selectedIndex) {
-                0 -> HomeScreen()
-                1 -> Subject()
-                2 -> Task()
+                0 -> HomeScreen(taskViewModel, subjectViewModel)
+                1 -> Subject(subjectViewModel, taskViewModel)
+                2 -> Task(taskViewModel, subjectViewModel)
                 3 -> Profile()
-                else -> HomeScreen()
+                else -> HomeScreen(taskViewModel, subjectViewModel)
             }
         }
     }
 }
-
-@Preview
-@Composable
-fun PreviewDashboard() {
-
-    DashboardBody()
-}
-

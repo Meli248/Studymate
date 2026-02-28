@@ -16,10 +16,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.study.model.Subject
 import com.example.study.model.Task
-import com.example.study.repository.SubjectRepoImpl
-import com.example.study.repository.TaskRepoImpl
 import com.example.study.repository.userRepoImpl
 import com.example.study.ui.theme.CompletedCardGreen
 import com.example.study.ui.theme.IconBackgroundBlue
@@ -37,29 +34,24 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    taskViewModel: TaskViewModel,
+    subjectViewModel: SubjectViewModel
+) {
     val auth = FirebaseAuth.getInstance()
     val userId = auth.currentUser?.uid ?: ""
 
     val userViewModel = remember { UserViewModel(userRepoImpl()) }
-    val subjectViewModel = remember { SubjectViewModel(SubjectRepoImpl()) }
-    val taskViewModel = remember { TaskViewModel(TaskRepoImpl()) }
+
+    // Collect shared state — updates instantly when tasks are toggled anywhere
+    val tasks by taskViewModel.tasks.collectAsState()
+    val subjects by subjectViewModel.subjects.collectAsState()
 
     var userName by remember { mutableStateOf("") }
-    var subjects by remember { mutableStateOf(listOf<Subject>()) }
-    var tasks by remember { mutableStateOf(listOf<Task>()) }
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
             userViewModel.getUserById(userId)
-
-            subjectViewModel.getAllSubjects(userId) { success, _, subjectList ->
-                if (success && subjectList != null) subjects = subjectList
-            }
-
-            taskViewModel.getAllTasks(userId) { success, _, taskList ->
-                if (success && taskList != null) tasks = taskList
-            }
         }
     }
 
@@ -72,9 +64,10 @@ fun HomeScreen() {
     val pendingTasks = tasks.count { !it.isCompleted }
 
     val today = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(Date())
-    val upcomingTasks = tasks.filter {
-        !it.isCompleted && (it.dueDate == today || it.dueDate.contains("Today"))
-    }.sortedBy { it.createdAt }
+    val upcomingTasks = tasks
+        .filter { !it.isCompleted }
+        .sortedBy { parseDueDateForHome(it.dueDate) }
+        .take(2)
 
     LazyColumn(
         modifier = Modifier
@@ -101,7 +94,6 @@ fun HomeScreen() {
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Normal
                         )
-                        // Removed 👋 emoji — just name + !
                         Text(
                             text = "${userName.ifEmpty { "Student" }}!",
                             color = Color.White,
@@ -110,7 +102,6 @@ fun HomeScreen() {
                         )
                     }
 
-                    // Streak badge — flash.png instead of ⚡ emoji
                     Surface(
                         shape = RoundedCornerShape(20.dp),
                         color = Color.White.copy(alpha = 0.25f),
@@ -127,7 +118,7 @@ fun HomeScreen() {
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "0",
+                                text = "${completedTasks}",
                                 color = Color.White,
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
@@ -271,7 +262,7 @@ fun HomeScreen() {
             }
         }
 
-        // Upcoming Task Cards or empty state + motivation card
+        // Upcoming Task Cards or empty state
         item {
             Column(
                 modifier = Modifier
@@ -293,9 +284,8 @@ fun HomeScreen() {
                                 .padding(32.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            // Removed 🎉 emoji — plain text
                             Text(
-                                text = "No upcoming tasks for today!",
+                                text = "No upcoming tasks!",
                                 color = GrayText,
                                 fontSize = 14.sp
                             )
@@ -310,7 +300,7 @@ fun HomeScreen() {
                     }
                 }
 
-                // Motivation Card — diagram.png instead of 📈 emoji
+                // Motivation Card
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = PrimaryGreen),
@@ -352,7 +342,7 @@ fun HomeScreen() {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(80.dp))
+                Spacer(modifier = Modifier.height(35.dp))
             }
         }
     }
@@ -424,10 +414,11 @@ fun UpcomingTaskCard(
     ) {
         Row(
             modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Box(
                 modifier = Modifier
+                    .padding(top = 4.dp)
                     .size(12.dp)
                     .background(PrimaryGreen, CircleShape)
             )
@@ -439,10 +430,18 @@ fun UpcomingTaskCard(
                     fontWeight = FontWeight.SemiBold,
                     color = DarkText
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
+                if (task.note.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = task.note,
+                        fontSize = 12.sp,
+                        color = GrayText,
+                        maxLines = 2,
+                        lineHeight = 16.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_calendar_month_24),
                         contentDescription = null,
@@ -450,9 +449,23 @@ fun UpcomingTaskCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Today", fontSize = 12.sp, color = GrayText)
+                    Text(text = task.dueDate, fontSize = 12.sp, color = GrayText)
+                    if (task.subjectName.isNotBlank()) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(shape = RoundedCornerShape(6.dp), color = LightGreen) {
+                            Text(task.subjectName, fontSize = 11.sp, color = PrimaryGreen, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+fun parseDueDateForHome(dateStr: String): java.util.Date {
+    return try {
+        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).parse(dateStr) ?: java.util.Date()
+    } catch (e: Exception) {
+        java.util.Date()
     }
 }
