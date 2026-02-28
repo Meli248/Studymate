@@ -1,5 +1,7 @@
 package com.example.study.model
 
+import com.google.firebase.database.PropertyName
+
 data class Task(
     val taskId: String = "",
     val userId: String = "",
@@ -9,7 +11,12 @@ data class Task(
     val note: String = "",
     val dueDate: String = "",
     val priority: String = "Imp",
-    val isCompleted: Boolean = false,
+    
+    @get:PropertyName("completed")
+    @set:PropertyName("completed")
+    @PropertyName("completed")
+    var isCompleted: Boolean = false,
+    
     val createdAt: Long = System.currentTimeMillis()
 ) {
     fun toMap(): Map<String, Any?> {
@@ -22,7 +29,7 @@ data class Task(
             "note" to note,
             "dueDate" to dueDate,
             "priority" to priority,
-            "isCompleted" to isCompleted,
+            "completed" to isCompleted,
             "createdAt" to createdAt
         )
     }

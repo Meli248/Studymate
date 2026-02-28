@@ -308,14 +308,18 @@ fun EditSubjectDialog(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Button(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f).height(50.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = FieldGray, contentColor = DarkText)
                     ) {
-                        Text("Cancel", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Cancel", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                     }
 
                     Button(
@@ -326,11 +330,12 @@ fun EditSubjectDialog(
                             }
                             onUpdate(subjectName)
                         },
-                        modifier = Modifier.weight(1f).height(50.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                         shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 14.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
-                        Text("Update", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text("Update", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1)
                     }
                 }
             }

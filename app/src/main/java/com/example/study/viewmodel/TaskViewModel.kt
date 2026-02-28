@@ -14,19 +14,18 @@ class TaskViewModel(private val repo: TaskRepo) : ViewModel() {
     private val _tasks = MutableStateFlow<List<Task>>(emptyList())
     val tasks: StateFlow<List<Task>> = _tasks
 
-    // Track pending completion writes so Firebase doesn't overwrite them
-    private val pendingCompletions = mutableMapOf<String, Boolean>()
+    // Stores local completion states that MUST NOT be overwritten by Firebase re-fires.
+    // Key = taskId, Value = isCompleted
+    private val localCompletionOverrides = mutableMapOf<String, Boolean>()
 
     fun loadTasks(userId: String) {
         repo.getAllTasks(userId) { success, _, taskList ->
             if (success && taskList != null) {
-                // Merge: for each task, if we have a pending completion change, keep it
+                // Always apply local overrides on top of Firebase data.
+                // This prevents Firebase listener re-fires from wiping optimistic UI updates.
                 val merged = taskList.map { task ->
-                    if (pendingCompletions.containsKey(task.taskId)) {
-                        task.copy(isCompleted = pendingCompletions[task.taskId]!!)
-                    } else {
-                        task
-                    }
+                    val localState = localCompletionOverrides[task.taskId]
+                    if (localState != null) task.copy(isCompleted = localState) else task
                 }
                 _tasks.value = merged
             }
@@ -60,24 +59,33 @@ class TaskViewModel(private val repo: TaskRepo) : ViewModel() {
     }
 
     fun deleteTask(taskId: String, callback: (Boolean, String) -> Unit) {
-        // Remove from pending too
-        pendingCompletions.remove(taskId)
-        // Remove locally immediately
+        // Remove override so deleted task doesn't linger in the map
+        localCompletionOverrides.remove(taskId)
+        // Remove from list immediately so UI doesn't flash
         _tasks.value = _tasks.value.filter { it.taskId != taskId }
         repo.deleteTask(taskId, callback)
     }
 
     fun toggleTaskCompletion(taskId: String, isCompleted: Boolean, callback: (Boolean, String) -> Unit) {
-        // Track as pending so Firebase listener won't overwrite it
-        pendingCompletions[taskId] = isCompleted
-        // Apply optimistically
+        // 1. Store override BEFORE Firebase write so any listener re-fires are already handled
+        localCompletionOverrides[taskId] = isCompleted
+
+        // 2. Apply immediately in UI (optimistic update)
         _tasks.value = _tasks.value.map { t ->
             if (t.taskId == taskId) t.copy(isCompleted = isCompleted) else t
         }
+
+        // 3. Write to Firebase
         repo.toggleTaskCompletion(taskId, isCompleted) { success, message ->
             if (success) {
-                // Write confirmed — remove from pending
-                pendingCompletions.remove(taskId)
+                // Firebase confirmed — remove override (Firebase value is now correct)
+                localCompletionOverrides.remove(taskId)
+            } else {
+                // Revert on failure
+                localCompletionOverrides.remove(taskId)
+                _tasks.value = _tasks.value.map { t ->
+                    if (t.taskId == taskId) t.copy(isCompleted = !isCompleted) else t
+                }
             }
             callback(success, message)
         }

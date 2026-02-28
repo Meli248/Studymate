@@ -77,7 +77,6 @@ class TaskRepoImpl : TaskRepo {
         userId: String,
         callback: (Boolean, String, List<Task>?) -> Unit
     ) {
-        // FIXED: Using addValueEventListener for real-time updates
         ref.orderByChild("userId").equalTo(userId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -88,11 +87,7 @@ class TaskRepoImpl : TaskRepo {
                             tasks.add(task)
                         }
                     }
-                    if (tasks.isNotEmpty()) {
-                        callback(true, "Tasks fetched successfully", tasks)
-                    } else {
-                        callback(true, "No tasks found", emptyList())
-                    }
+                    callback(true, "Tasks fetched successfully", tasks)
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -106,7 +101,6 @@ class TaskRepoImpl : TaskRepo {
         subjectId: String,
         callback: (Boolean, String, List<Task>?) -> Unit
     ) {
-        // FIXED: Using addValueEventListener for real-time updates
         ref.orderByChild("userId").equalTo(userId)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -117,11 +111,7 @@ class TaskRepoImpl : TaskRepo {
                             tasks.add(task)
                         }
                     }
-                    if (tasks.isNotEmpty()) {
-                        callback(true, "Tasks fetched successfully", tasks)
-                    } else {
-                        callback(true, "No tasks found", emptyList())
-                    }
+                    callback(true, "Tasks fetched successfully", tasks)
                 }
 
                 override fun onCancelled(error: DatabaseError) {
@@ -135,7 +125,8 @@ class TaskRepoImpl : TaskRepo {
         isCompleted: Boolean,
         callback: (Boolean, String) -> Unit
     ) {
-        ref.child(taskId).child("isCompleted").setValue(isCompleted)
+        // FIXED: Using "completed" to match the model's Firebase property name (@PropertyName("completed"))
+        ref.child(taskId).child("completed").setValue(isCompleted)
             .addOnCompleteListener {
                 if (it.isSuccessful) {
                     callback(true, "Task status updated")
