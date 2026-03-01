@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.study.model.User
 import com.example.study.repository.userRepoImpl
+import com.example.study.ui.theme.StudyTheme
 import com.example.study.viewmodel.UserViewModel
 
 val FieldGray = Color(0xFFF2F5F4)
@@ -57,7 +58,9 @@ class RegistrationActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            RegistrationBody()
+            StudyTheme {
+                RegistrationBody()
+            }
         }
     }
 }
@@ -65,7 +68,7 @@ class RegistrationActivity : ComponentActivity() {
 @Composable
 fun RegistrationBody() {
 
-    val UserViewModel = remember { UserViewModel(userRepoImpl()) }
+    val userViewModel = remember { UserViewModel(userRepoImpl()) }
 
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -73,7 +76,7 @@ fun RegistrationBody() {
     var passwordVisible by remember { mutableStateOf(false) }
     var termsAccepted by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val activity = context as Activity
+    val activity = context as? Activity
     val sharedPreference = context.getSharedPreferences("User", Context.MODE_PRIVATE)
 
     Column(
@@ -237,23 +240,23 @@ fun RegistrationBody() {
                     if (!termsAccepted) {
                         Toast.makeText(context, "Please agree to Terms & Conditions", Toast.LENGTH_SHORT).show()
                     } else {
-                        val LocalEmail: String? = sharedPreference.getString("email", "")
-                        if (LocalEmail == email) {
+                        val localEmail: String? = sharedPreference.getString("email", "")
+                        if (localEmail == email) {
                             Toast.makeText(context, "email already exists", Toast.LENGTH_SHORT).show()
                         } else {
-                            UserViewModel.register(fullName, email, password) { success, msg, userId ->
+                            userViewModel.register(fullName, email, password) { success, msg, userId ->
                                 if (success) {
                                     val model = User(
                                         id = userId,
                                         email = email,
                                         fullName = fullName
                                     )
-                                    UserViewModel.addUserToDatabase(userId, model) { success2, msg2 ->
+                                    userViewModel.addUserToDatabase(userId, model) { success2, msg2 ->
                                         if (success2) {
                                             Toast.makeText(context, msg2, Toast.LENGTH_SHORT).show()
                                             val intent = Intent(context, DashboardActivity::class.java)
                                             context.startActivity(intent)
-                                            activity.finish()
+                                            activity?.finish()
                                         } else {
                                             Toast.makeText(context, msg2, Toast.LENGTH_SHORT).show()
                                         }
@@ -280,7 +283,7 @@ fun RegistrationBody() {
 
             Text(
                 buildAnnotatedString {
-                    append("Already have an account? ")
+                    append("Don't have an account? ")
                     withStyle(SpanStyle(color = PrimaryGreen, fontWeight = FontWeight.Medium)) {
                         append("Login")
                     }
@@ -291,7 +294,7 @@ fun RegistrationBody() {
                     .clickable {
                         val intent = Intent(context, Login::class.java)
                         context.startActivity(intent)
-                        activity.finish()
+                        activity?.finish()
                     }
             )
 

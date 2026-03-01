@@ -45,23 +45,32 @@ import com.google.firebase.auth.FirebaseAuth
 class Login : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Auto-login logic: if user is already logged in, go to Dashboard
+        if (FirebaseAuth.getInstance().currentUser != null) {
+            startActivity(Intent(this, DashboardActivity::class.java))
+            finish()
+            return
+        }
+
         enableEdgeToEdge()
         setContent {
-            LoginBody()
+            StudyTheme {
+                LoginBody()
+            }
         }
     }
 }
 
 @Composable
 fun LoginBody() {
-
-    val UserViewModel = remember { UserViewModel(userRepoImpl()) }
+    val userViewModel = remember { UserViewModel(userRepoImpl()) }
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val activity = context as Activity
+    val activity = context as? Activity
 
     Column(
         modifier = Modifier
@@ -205,6 +214,7 @@ fun LoginBody() {
                             if (task.isSuccessful) {
                                 Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                                 context.startActivity(Intent(context, DashboardActivity::class.java))
+                                activity?.finish()
                             } else {
                                 Toast.makeText(context, task.exception?.message ?: "Login failed", Toast.LENGTH_SHORT).show()
                             }
@@ -236,7 +246,7 @@ fun LoginBody() {
                     .clickable {
                         val intent = Intent(context, RegistrationActivity::class.java)
                         context.startActivity(intent)
-                        activity.finish()
+                        activity?.finish()
                     }
             )
 
