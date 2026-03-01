@@ -1,6 +1,7 @@
 package com.example.study
 
 import android.app.Activity
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,6 +19,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.study.ui.theme.StudyTheme
+import com.example.study.utils.ImageUtils
 import com.example.study.viewmodel.SubjectViewModel
 import com.example.study.viewmodel.TaskViewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -28,8 +30,17 @@ class DashboardActivity : ComponentActivity() {
     private val taskViewModel: TaskViewModel by viewModels { TaskViewModel.Factory }
     private val subjectViewModel: SubjectViewModel by viewModels { SubjectViewModel.Factory }
 
+    private lateinit var imageUtils: ImageUtils
+    private val selectedImageUriState = mutableStateOf<Uri?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize ImageUtils and register launchers
+        imageUtils = ImageUtils(this, this)
+        imageUtils.registerLaunchers { uri ->
+            selectedImageUriState.value = uri
+        }
 
         // Start loading data once
         val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
@@ -41,7 +52,13 @@ class DashboardActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             StudyTheme {
-                DashboardBody(taskViewModel, subjectViewModel)
+                DashboardBody(
+                    taskViewModel = taskViewModel,
+                    subjectViewModel = subjectViewModel,
+                    selectedImageUri = selectedImageUriState.value,
+                    onPickImage = { imageUtils.launchImagePicker() },
+                    onImageUploaded = { selectedImageUriState.value = null }
+                )
             }
         }
     }
@@ -51,10 +68,12 @@ class DashboardActivity : ComponentActivity() {
 @Composable
 fun DashboardBody(
     taskViewModel: TaskViewModel,
-    subjectViewModel: SubjectViewModel
+    subjectViewModel: SubjectViewModel,
+    selectedImageUri: Uri?,
+    onPickImage: () -> Unit,
+    onImageUploaded: () -> Unit
 ) {
     val context = LocalContext.current
-    val activity = context as Activity
 
     data class NavItem(val label: String, val icon: Int)
     var selectedIndex by remember { mutableStateOf(0) }
@@ -126,7 +145,11 @@ fun DashboardBody(
                 0 -> HomeScreen(taskViewModel, subjectViewModel)
                 1 -> Subject(subjectViewModel, taskViewModel)
                 2 -> Task(taskViewModel, subjectViewModel)
-                3 -> Profile()
+                3 -> Profile(
+                    selectedImageUri = selectedImageUri,
+                    onPickImage = onPickImage,
+                    onImageUploaded = onImageUploaded
+                )
                 else -> HomeScreen(taskViewModel, subjectViewModel)
             }
         }

@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.study"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.study"
@@ -58,6 +56,8 @@ dependencies {
     implementation(libs.androidx.credentials.play.services.auth)
     implementation(libs.googleid)
     implementation("androidx.compose.runtime:runtime-livedata:1.6.8")
+    implementation("com.cloudinary:cloudinary-android:2.1.0")
+    implementation("io.coil-kt:coil-compose:2.7.0")
 
 
     testImplementation(libs.junit)

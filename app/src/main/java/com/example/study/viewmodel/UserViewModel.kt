@@ -1,5 +1,7 @@
 package com.example.study.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.example.study.model.User
@@ -105,7 +107,11 @@ class UserViewModel (val repo: UserRepo): ViewModel()  {
         repo.forgetPassword(email, callback)
     }
 
-
-
-
+    fun uploadImage(context: Context, imageUri: Uri, callback: (String?) -> Unit) {
+        _loading.postValue(true)
+        repo.uploadImage(context, imageUri) { url ->
+            _loading.postValue(false)
+            callback(url)
+        }
+    }
 }

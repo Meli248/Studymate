@@ -2,6 +2,7 @@ package com.example.study
 
 import android.app.Activity
 import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,20 +16,27 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.study.model.User
 import com.example.study.repository.userRepoImpl
 import com.example.study.viewmodel.UserViewModel
 import com.google.firebase.auth.FirebaseAuth
 
 @Composable
-fun Profile() {
+fun Profile(
+    selectedImageUri: Uri?,
+    onPickImage: () -> Unit,
+    onImageUploaded: () -> Unit
+) {
     val context = LocalContext.current
     val activity = context as Activity
     val focusManager = LocalFocusManager.current
@@ -45,6 +53,7 @@ fun Profile() {
     var name by remember { mutableStateOf("") }
     var course by remember { mutableStateOf("") }
     var semester by remember { mutableStateOf("") }
+    var profileImage by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(userId) {
@@ -56,6 +65,7 @@ fun Profile() {
             name = it.fullName
             course = it.course
             semester = it.semester
+            profileImage = it.profileImage
         }
     }
 
@@ -67,8 +77,44 @@ fun Profile() {
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(modifier = Modifier.size(100.dp).background(PrimaryGreen, CircleShape), contentAlignment = Alignment.Center) {
-                    Icon(painterResource(R.drawable.baseline_person_24), null, tint = Color.White, modifier = Modifier.size(50.dp))
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .background(PrimaryGreen, CircleShape)
+                        .clickable { onPickImage() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selectedImageUri != null) {
+                        AsyncImage(
+                            model = selectedImageUri,
+                            contentDescription = "Selected Image",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (profileImage.isNotEmpty()) {
+                        AsyncImage(
+                            model = profileImage,
+                            contentDescription = "Profile Image",
+                            modifier = Modifier.fillMaxSize().clip(CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(painterResource(R.drawable.baseline_person_24), null, tint = Color.White, modifier = Modifier.size(50.dp))
+                    }
+                    
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .background(Color.White, CircleShape)
+                            .padding(4.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.baseline_edit_24),
+                            contentDescription = "Edit Image",
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(name.ifEmpty { "Student" }, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = DarkText)
@@ -113,10 +159,28 @@ fun Profile() {
                 Button(
                     onClick = {
                         if (name.isBlank()) { Toast.makeText(context, "Name is required", Toast.LENGTH_SHORT).show(); return@Button }
-                        val updatedUser = User(id = userId, fullName = name, email = userEmail, profileImage = "", course = course, semester = semester)
-                        userViewModel.updateProfile(userId, updatedUser) { success, message ->
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                            if (success) focusManager.clearFocus() // clears cursor/focus after update
+                        
+                        if (selectedImageUri != null) {
+                            userViewModel.uploadImage(context, selectedImageUri) { imageUrl: String? ->
+                                if (imageUrl != null) {
+                                    val updatedUser = User(id = userId, fullName = name, email = userEmail, profileImage = imageUrl, course = course, semester = semester)
+                                    userViewModel.updateProfile(userId, updatedUser) { success, message ->
+                                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                        if (success) {
+                                            focusManager.clearFocus()
+                                            onImageUploaded()
+                                        }
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Image upload failed", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            val updatedUser = User(id = userId, fullName = name, email = userEmail, profileImage = profileImage, course = course, semester = semester)
+                            userViewModel.updateProfile(userId, updatedUser) { success, message ->
+                                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                                if (success) focusManager.clearFocus()
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -153,7 +217,7 @@ fun Profile() {
                     Text("Logout", fontSize = 16.sp, color = DarkText, fontWeight = FontWeight.Medium)
                 }
 
-                Divider(color = FieldGray, thickness = 1.dp)
+                HorizontalDivider(color = FieldGray, thickness = 1.dp)
 
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { showDeleteDialog = true }.padding(vertical = 12.dp),
